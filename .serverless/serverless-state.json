@@ -1,8 +1,8 @@
 {
   "service": {
-    "service": "rolling-scopes-fe",
+    "service": "product-service",
     "serviceObject": {
-      "name": "rolling-scopes-fe"
+      "name": "product-service"
     },
     "provider": {
       "stage": "dev",
@@ -10,6 +10,12 @@
       "name": "aws",
       "runtime": "nodejs12.x",
       "region": "eu-west-1",
+      "apiGateway": {
+        "minimumCompressionSize": 1024
+      },
+      "environment": {
+        "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+      },
       "versionFunctions": true,
       "compiledCloudFormationTemplate": {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -69,113 +75,479 @@
               }
             }
           },
-          "WebAppS3Bucket": {
-            "Type": "AWS::S3::Bucket",
+          "GetProductsLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "BucketName": "rolling-scopes-fe-se",
-              "AccessControl": "PublicRead",
-              "WebsiteConfiguration": {
-                "IndexDocument": "index.html",
-                "ErrorDocument": "index.html"
-              }
+              "LogGroupName": "/aws/lambda/product-service-dev-getProducts"
             }
           },
-          "WebAppS3BucketPolicy": {
-            "Type": "AWS::S3::BucketPolicy",
+          "GetProductLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "Bucket": {
-                "Ref": "WebAppS3Bucket"
-              },
-              "PolicyDocument": {
+              "LogGroupName": "/aws/lambda/product-service-dev-getProduct"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
                 "Statement": [
                   {
-                    "Sid": "AllowCloudFrontAccessIdentity",
                     "Effect": "Allow",
-                    "Action": "s3:GetObject",
-                    "Resource": "arn:aws:s3:::rolling-scopes-fe-se/*",
                     "Principal": {
-                      "AWS": {
-                        "Fn::Join": [
-                          " ",
-                          [
-                            "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity",
-                            {
-                              "Ref": "OriginAccessIdentity"
-                            }
-                          ]
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "product-service",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/product-service-dev*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/product-service-dev*:*:*"
+                          }
                         ]
                       }
-                    }
+                    ]
                   }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "product-service",
+                    "dev",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
                 ]
               }
             }
           },
-          "OriginAccessIdentity": {
-            "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+          "GetProductsLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
             "Properties": {
-              "CloudFrontOriginAccessIdentityConfig": {
-                "Comment": "Access identity between CloudFront and S3 bucket"
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/product-service/dev/1604274129918-2020-11-01T23:42:09.918Z/product-service.zip"
+              },
+              "FunctionName": "product-service-dev-getProducts",
+              "Handler": "apps/api/handler.getProducts",
+              "MemorySize": 1024,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Runtime": "nodejs12.x",
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+                }
+              }
+            },
+            "DependsOn": [
+              "GetProductsLogGroup"
+            ]
+          },
+          "GetProductsLambdaVersionBOtIm77vhvZwR5jtoNrP8OJNlT4Xb5xWZcC7EkbzOUI": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetProductsLambdaFunction"
+              },
+              "CodeSha256": "UPbgHPXCGhX/TFgjk7NgZnGUzSBTiSNc4Ldv1X3o8Sc="
+            }
+          },
+          "GetProductLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/product-service/dev/1604274129918-2020-11-01T23:42:09.918Z/product-service.zip"
+              },
+              "FunctionName": "product-service-dev-getProduct",
+              "Handler": "apps/api/handler.getProduct",
+              "MemorySize": 1024,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              },
+              "Runtime": "nodejs12.x",
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+                }
+              }
+            },
+            "DependsOn": [
+              "GetProductLogGroup"
+            ]
+          },
+          "GetProductLambdaVersion2DmgqMZePHBQ7yaI8xkJCYs6y0w7qzGgD9pbAwb8": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetProductLambdaFunction"
+              },
+              "CodeSha256": "UPbgHPXCGhX/TFgjk7NgZnGUzSBTiSNc4Ldv1X3o8Sc="
+            }
+          },
+          "ApiGatewayRestApi": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+              "Name": "dev-product-service",
+              "EndpointConfiguration": {
+                "Types": [
+                  "EDGE"
+                ]
+              },
+              "Policy": "",
+              "MinimumCompressionSize": 1024
+            }
+          },
+          "ApiGatewayResourceProducts": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "products",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "WebAppCloudFrontDistribution": {
-            "Type": "AWS::CloudFront::Distribution",
+          "ApiGatewayResourceProductsProductidVar": {
+            "Type": "AWS::ApiGateway::Resource",
             "Properties": {
-              "DistributionConfig": {
-                "Origins": [
-                  {
-                    "DomainName": "rolling-scopes-fe-se.s3.amazonaws.com",
-                    "Id": "myS3Origin",
-                    "S3OriginConfig": {
-                      "OriginAccessIdentity": {
-                        "Fn::Sub": "origin-access-identity/cloudfront/${OriginAccessIdentity}"
-                      }
-                    }
-                  }
-                ],
-                "Enabled": true,
-                "IPV6Enabled": true,
-                "HttpVersion": "http2",
-                "DefaultRootObject": "index.html",
-                "CustomErrorResponses": [
-                  {
-                    "ErrorCode": 404,
-                    "ResponseCode": 200,
-                    "ResponsePagePath": "/index.html"
-                  }
-                ],
-                "DefaultCacheBehavior": {
-                  "AllowedMethods": [
-                    "GET",
-                    "HEAD",
-                    "OPTIONS"
-                  ],
-                  "CachedMethods": [
-                    "GET",
-                    "HEAD",
-                    "OPTIONS"
-                  ],
-                  "ForwardedValues": {
-                    "Headers": [
-                      "Access-Control-Request-Headers",
-                      "Access-Control-Request-Method",
-                      "Origin",
-                      "Authorization"
-                    ],
-                    "QueryString": false,
-                    "Cookies": {
-                      "Forward": "none"
-                    }
+              "ParentId": {
+                "Ref": "ApiGatewayResourceProducts"
+              },
+              "PathPart": "{productId}",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodProductsOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
                   },
-                  "TargetOriginId": "myS3Origin",
-                  "ViewerProtocolPolicy": "redirect-to-https",
-                  "Compress": true,
-                  "DefaultTTL": 0
-                },
-                "ViewerCertificate": {
-                  "CloudFrontDefaultCertificate": "true"
+                  "ResponseModels": {}
                 }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\".+\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProducts"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodProductsProductidVarOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\".+\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProductsProductidVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodProductsGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProducts"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetProductsLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            }
+          },
+          "ApiGatewayMethodProductsProductidVarGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {
+                "method.request.path.productId": true
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProductsProductidVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetProductLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            }
+          },
+          "ApiGatewayDeployment1604273782795": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "Properties": {
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "StageName": "dev"
+            },
+            "DependsOn": [
+              "ApiGatewayMethodProductsOptions",
+              "ApiGatewayMethodProductsProductidVarOptions",
+              "ApiGatewayMethodProductsGet",
+              "ApiGatewayMethodProductsProductidVarGet"
+            ]
+          },
+          "GetProductsLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetProductsLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetProductLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetProductLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
               }
             }
           }
@@ -186,16 +558,38 @@
               "Ref": "ServerlessDeploymentBucket"
             }
           },
-          "WebAppS3BucketOutput": {
+          "GetProductsLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "WebAppS3Bucket"
+              "Ref": "GetProductsLambdaVersionBOtIm77vhvZwR5jtoNrP8OJNlT4Xb5xWZcC7EkbzOUI"
             }
           },
-          "WebAppCloudFrontDistributionOutput": {
+          "GetProductLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
             "Value": {
-              "Fn::GetAtt": [
-                "WebAppCloudFrontDistribution",
-                "DomainName"
+              "Ref": "GetProductLambdaVersion2DmgqMZePHBQ7yaI8xkJCYs6y0w7qzGgD9pbAwb8"
+            }
+          },
+          "ServiceEndpoint": {
+            "Description": "URL of the service endpoint",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  },
+                  "/dev"
+                ]
               ]
             }
           }
@@ -267,176 +661,142 @@
             }
           }
         }
-      }
+      },
+      "vpc": {}
     },
     "custom": {
-      "client": {
-        "bucketName": "rolling-scopes-fe-se",
-        "distributionFolder": "dist/apps/shop-se"
-      },
-      "s3LocalPath": "dist/apps/shop-se/",
-      "s3BucketName": "rolling-scopes-fe-se"
+      "functionsBasePath": "apps/api",
+      "webpack": {
+        "webpackConfig": "./webpack.config.js",
+        "includeModules": true
+      }
     },
     "plugins": [
-      "serverless-finch",
-      "serverless-single-page-app-plugin"
+      "serverless-webpack",
+      "serverless-functions-base-path"
     ],
     "pluginsData": {},
-    "functions": {},
-    "resources": {
-      "Resources": {
-        "WebAppS3Bucket": {
-          "Type": "AWS::S3::Bucket",
-          "Properties": {
-            "BucketName": "rolling-scopes-fe-se",
-            "AccessControl": "PublicRead",
-            "WebsiteConfiguration": {
-              "IndexDocument": "index.html",
-              "ErrorDocument": "index.html"
-            }
-          }
-        },
-        "WebAppS3BucketPolicy": {
-          "Type": "AWS::S3::BucketPolicy",
-          "Properties": {
-            "Bucket": {
-              "Ref": "WebAppS3Bucket"
-            },
-            "PolicyDocument": {
-              "Statement": [
-                {
-                  "Sid": "AllowCloudFrontAccessIdentity",
-                  "Effect": "Allow",
-                  "Action": "s3:GetObject",
-                  "Resource": "arn:aws:s3:::rolling-scopes-fe-se/*",
-                  "Principal": {
-                    "AWS": {
-                      "Fn::Join": [
-                        " ",
-                        [
-                          "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity",
-                          {
-                            "Ref": "OriginAccessIdentity"
-                          }
-                        ]
-                      ]
-                    }
-                  }
-                }
-              ]
-            }
-          }
-        },
-        "OriginAccessIdentity": {
-          "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
-          "Properties": {
-            "CloudFrontOriginAccessIdentityConfig": {
-              "Comment": "Access identity between CloudFront and S3 bucket"
-            }
-          }
-        },
-        "WebAppCloudFrontDistribution": {
-          "Type": "AWS::CloudFront::Distribution",
-          "Properties": {
-            "DistributionConfig": {
-              "Origins": [
-                {
-                  "DomainName": "rolling-scopes-fe-se.s3.amazonaws.com",
-                  "Id": "myS3Origin",
-                  "S3OriginConfig": {
-                    "OriginAccessIdentity": {
-                      "Fn::Sub": "origin-access-identity/cloudfront/${OriginAccessIdentity}"
-                    }
-                  }
-                }
-              ],
-              "Enabled": true,
-              "IPV6Enabled": true,
-              "HttpVersion": "http2",
-              "DefaultRootObject": "index.html",
-              "CustomErrorResponses": [
-                {
-                  "ErrorCode": 404,
-                  "ResponseCode": 200,
-                  "ResponsePagePath": "/index.html"
-                }
-              ],
-              "DefaultCacheBehavior": {
-                "AllowedMethods": [
-                  "GET",
-                  "HEAD",
-                  "OPTIONS"
+    "functions": {
+      "getProducts": {
+        "handler": "apps/api/handler.getProducts",
+        "events": [
+          {
+            "http": {
+              "path": "products",
+              "method": "get",
+              "cors": {
+                "origins": [
+                  "*"
                 ],
-                "CachedMethods": [
-                  "GET",
-                  "HEAD",
-                  "OPTIONS"
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
                 ],
-                "ForwardedValues": {
-                  "Headers": [
-                    "Access-Control-Request-Headers",
-                    "Access-Control-Request-Method",
-                    "Origin",
-                    "Authorization"
-                  ],
-                  "QueryString": false,
-                  "Cookies": {
-                    "Forward": "none"
-                  }
-                },
-                "TargetOriginId": "myS3Origin",
-                "ViewerProtocolPolicy": "redirect-to-https",
-                "Compress": true,
-                "DefaultTTL": 0
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent"
+                ],
+                "allowCredentials": false
               },
-              "ViewerCertificate": {
-                "CloudFrontDefaultCertificate": "true"
-              }
+              "integration": "AWS_PROXY"
             }
           }
-        }
-      },
-      "Outputs": {
-        "WebAppS3BucketOutput": {
-          "Value": {
-            "Ref": "WebAppS3Bucket"
-          }
+        ],
+        "name": "product-service-dev-getProducts",
+        "package": {
+          "artifact": ".serverless/product-service.zip"
         },
-        "WebAppCloudFrontDistributionOutput": {
-          "Value": {
-            "Fn::GetAtt": [
-              "WebAppCloudFrontDistribution",
-              "DomainName"
-            ]
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs12.x",
+        "vpc": {},
+        "versionLogicalId": "GetProductsLambdaVersionBOtIm77vhvZwR5jtoNrP8OJNlT4Xb5xWZcC7EkbzOUI"
+      },
+      "getProduct": {
+        "handler": "apps/api/handler.getProduct",
+        "events": [
+          {
+            "http": {
+              "path": "products/{productId}",
+              "method": "get",
+              "cors": {
+                "origins": [
+                  "*"
+                ],
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent"
+                ],
+                "allowCredentials": false
+              },
+              "request": {
+                "parameters": {
+                  "method.request.path.productId": true
+                }
+              },
+              "integration": "AWS_PROXY"
+            }
           }
-        }
+        ],
+        "name": "product-service-dev-getProduct",
+        "package": {
+          "artifact": ".serverless/product-service.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs12.x",
+        "vpc": {},
+        "versionLogicalId": "GetProductLambdaVersion2DmgqMZePHBQ7yaI8xkJCYs6y0w7qzGgD9pbAwb8"
       }
     },
     "configValidationMode": "warn",
-    "serviceFilename": "serverless.yml",
+    "serviceFilename": "serverless.ts",
     "layers": {},
     "initialServerlessConfig": {
-      "service": "rolling-scopes-fe",
-      "frameworkVersion": "2",
-      "plugins": {
-        "$ref": "$[\"service\"][\"plugins\"]"
+      "service": {
+        "$ref": "$[\"service\"][\"serviceObject\"]"
       },
+      "frameworkVersion": "2",
       "custom": {
         "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
       },
       "provider": {
         "name": "aws",
         "runtime": "nodejs12.x",
-        "region": "eu-west-1"
+        "region": "eu-west-1",
+        "stage": "dev",
+        "apiGateway": {
+          "minimumCompressionSize": 1024
+        },
+        "environment": {
+          "AWS_NODEJS_CONNECTION_REUSE_ENABLED": "1"
+        }
       },
-      "resources": {
-        "$ref": "$[\"service\"][\"resources\"]"
+      "functions": {
+        "$ref": "$[\"service\"][\"functions\"]"
       }
     },
     "isDashboardMonitoringPreconfigured": false
   },
   "package": {
-    "artifactDirectoryName": "serverless/rolling-scopes-fe/dev/1604262814557-2020-11-01T20:33:34.557Z",
+    "artifactDirectoryName": "serverless/product-service/dev/1604274129918-2020-11-01T23:42:09.918Z",
     "artifact": ""
   }
 }
