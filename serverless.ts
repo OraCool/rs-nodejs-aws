@@ -27,6 +27,7 @@ const serverlessConfiguration: Serverless = {
     },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+
     },
   },
   functions: {
@@ -57,6 +58,18 @@ const serverlessConfiguration: Serverless = {
                 },
               },
             },
+          },
+        },
+      ],
+    },
+    pgInit: {
+      handler: 'handler.pgInit',
+      events: [
+        {
+          http: {
+            path: 'init',
+            method: 'get',
+            cors: true,
           },
         },
       ],
