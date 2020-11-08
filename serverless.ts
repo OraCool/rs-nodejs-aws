@@ -31,7 +31,7 @@ const serverlessConfiguration: Serverless = {
       PG_PORT: 5432,
       PG_DATABASE: 'rsnodedb',
       PG_USERNAME: 'postgres',
-      PG_PASSWORD: 'ssg23121995'
+      PG_PASSWORD: 'ssg23121995',
     },
   },
   functions: {
@@ -66,26 +66,58 @@ const serverlessConfiguration: Serverless = {
         },
       ],
     },
-    createProduct: {
-      handler: 'handler.createProduct',
+    getAllProducts: {
+      handler: 'handler.getProducts',
+      events: [
+        {
+          http: {
+            path: 'product',
+            method: 'get',
+            cors: true,
+          },
+        },
+      ],
+    },
+    getSingleProduct: {
+      handler: 'handler.getProduct',
+      events: [
+        {
+          http: {
+            path: 'product/{productId}',
+            method: 'get',
+            cors: true,
+            request: {
+              parameters: {
+                paths: {
+                  productId: true,
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+    setProduct: {
+      handler: 'handler.setProduct',
       events: [
         {
           http: {
             path: 'product',
             method: 'put',
-            cors: true
+            cors: true,
           },
         },
       ],
     },
-    updateProduct: {
-      handler: 'handler.updateProduct',
+    deleteProduct: {
+      handler: 'handler.deleteProduct',
       events: [
         {
           http: {
             path: 'product/{productId}',
-            method: 'put',
-            cors: true,request: {
+            method: 'delete',
+            cors: true,
+            request: {
               parameters: {
                 paths: {
                   productId: true,

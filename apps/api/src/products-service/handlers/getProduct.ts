@@ -19,50 +19,51 @@ const dbOptions: ClientConfig = {
 };
 
 export const getProduct: APIGatewayProxyHandler = async (event, _context) => {
+  const resp = {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
+    statusCode: 200,
+    body: 'created',
+  };
   if (event && event.pathParameters && event.pathParameters.productId) {
     const client = new Client(dbOptions);
-    await client.connect();
-    const productId = event.pathParameters.productId;
-    const queryResult = await client.query(
-      `select p.*, s.count from products p left join stocks s on p.id=s.product_id where p.id=$1`,
-      [productId]
-    );
-    let product: Product;
-    const row = queryResult.rows[0];
-    if (row) {
-      product = new Product(
-        row.id,
-        row.title,
-        row.description,
-        row.price,
-        row.count
+    try {
+      await client.connect();
+      const productId = event.pathParameters.productId;
+      console.log(`getProduct incoming request: productId: ${event.pathParameters.productId}`);
+      const queryResult = await client.query(
+        `select p.*, s.count from products p left join stocks s on p.id=s.product_id where p.id=$1`,
+        [productId]
       );
-    }
-
-    if (product) {
-      return {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-        },
-        statusCode: 200,
-        body: JSON.stringify(product),
-      };
-    } else {
-      return {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-        },
-        statusCode: 404,
-        body: `Product with id=${productId} is not found`,
-      };
+      let product: Product;
+      const row = queryResult.rows[0];
+      if (row) {
+        product = new Product(
+          row.id,
+          row.title,
+          row.description,
+          row.price,
+          row.count
+        );
+      }
+      if (product) {
+        resp.statusCode = 200;
+        resp.body = JSON.stringify(product);
+      } else {
+        resp.statusCode = 404;
+        resp.body = `Product with id=${productId} is not found`;
+      }
+    } catch (err) {
+      resp.statusCode = 500;
+      resp.body = `Internal error`;
+    } finally {
+      // in case if error was occurred, connection will not close automatically
+      client.end(); // manual closing of connection
     }
   } else {
-    return {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-      },
-      statusCode: 400,
-      body: `Bad request`,
-    };
+    resp.statusCode = 400;
+    resp.body = `Bad request`;
   }
+  return resp;
 };

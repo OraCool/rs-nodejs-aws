@@ -18,33 +18,33 @@ const dbOptions: ClientConfig = {
   connectionTimeoutMillis: 5000, // time in millisecond for termination of the database query
 };
 
-export const updateProduct: APIGatewayProxyHandler = async (event, _context) => {
-  if (event && event.body && event.pathParameters && event.pathParameters.productId) {
-    const client = new Client(dbOptions);
-    await client.connect();
+export const deleteProduct: APIGatewayProxyHandler = async (
+  event,
+  _context
+) => {
+  if (event && event.pathParameters && event.pathParameters.productId) {
     const productId: string = event.pathParameters.productId;
+    console.log(`deleteProduct incoming request: productId: ${event.pathParameters.productId}`);
     const resp = {
       headers: {
         'Access-Control-Allow-Origin': '*',
       },
       statusCode: 200,
-      body: 'Updated',
+      body: 'Deleted',
     };
+    const client = new Client(dbOptions);
     try {
-      const product: Product = JSON.parse(event.body);
-      const queryResult = await client.query(
-        `update products set title=$1, description=$2, cost=$3 where id=$4;`,
-        [product.title, product.description, product.price, productId]
+      await client.connect();
+      const queryResult1 = await client.query(
+        `delete from stocks where product_id=$1;`,
+        [productId]
       );
-      if (product.count) {
-        const queryResult = await client.query(
-          `update stocks set count=$1 where product_id=$2`,
-          [product.count, productId]
-        );
-      }
-    }
-    catch (err) {
-      resp.statusCode = 401;
+      const queryResult = await client.query(
+        `delete from products where id=$1;`,
+        [productId]
+      );
+    } catch (err) {
+      resp.statusCode = 500;
       resp.body = JSON.stringify(err);
     } finally {
       // in case if error was occurred, connection will not close automatically

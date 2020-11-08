@@ -19,20 +19,31 @@ const dbOptions: ClientConfig = {
 };
 
 export const getProducts: APIGatewayProxyHandler = async (event, _context) => {
-  const client = new Client(dbOptions);
-  await client.connect();
-  const queryResult = await client.query(
-    `select p.*, s.count from products p left join stocks s on p.id=s.product_id`
-  );
-  const productList: Array<Product> = queryResult.rows.map(
-    (row) =>
-      new Product(row.id, row.title, row.description, row.price, row.count)
-  );
-  return {
+  const resp = {
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
     statusCode: 200,
-    body: JSON.stringify(productList),
+    body: '',
   };
+  const client = new Client(dbOptions);
+  try {
+    await client.connect();
+    const queryResult = await client.query(
+      `select p.*, s.count from products p left join stocks s on p.id=s.product_id`
+    );
+    const productList: Array<Product> = queryResult.rows.map(
+      (row) =>
+        new Product(row.id, row.title, row.description, row.price, row.count)
+    );
+    resp.statusCode = 200;
+    resp.body = JSON.stringify(productList);
+  } catch (err) {
+    resp.statusCode = 500;
+    resp.body = `Internal error`;
+  } finally {
+    // in case if error was occurred, connection will not close automatically
+    client.end(); // manual closing of connection
+  }
+  return resp;
 };
