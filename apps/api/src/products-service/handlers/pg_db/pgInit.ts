@@ -67,6 +67,7 @@ export async function pgInit(
       values
         ('febf406e-dc40-44e0-838a-ca552048a246', 5),
         ('e38bf509-f303-4114-84a1-bda1561ab828', 3)`);
+    console.log(JSON.stringify(dmlResult2));
 
     // make select query
   } catch (err) {

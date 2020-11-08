@@ -1,3 +1,3 @@
-import { getProduct, getProducts, pgInit } from './src/products-service/handlers';
+import { getProduct, getProducts, pgInit, ssgTest, createProduct, updateProduct } from './src/products-service/handlers';
 
-export { getProduct, getProducts, pgInit };
+export { getProduct, getProducts, pgInit, ssgTest, createProduct, updateProduct };
