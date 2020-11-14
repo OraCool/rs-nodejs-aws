@@ -27,6 +27,11 @@ const serverlessConfiguration: Serverless = {
     },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+      PG_HOST: '',
+      PG_PORT: 5432,
+      PG_DATABASE: 'rsnodedb',
+      PG_USERNAME: 'postgres',
+      PG_PASSWORD: '',
     },
   },
   functions: {
@@ -57,6 +62,92 @@ const serverlessConfiguration: Serverless = {
                 },
               },
             },
+          },
+        },
+      ],
+    },
+    getAllProducts: {
+      handler: 'handler.getProducts',
+      events: [
+        {
+          http: {
+            path: 'product',
+            method: 'get',
+            cors: true,
+          },
+        },
+      ],
+    },
+    getSingleProduct: {
+      handler: 'handler.getProduct',
+      events: [
+        {
+          http: {
+            path: 'product/{productId}',
+            method: 'get',
+            cors: true,
+            request: {
+              parameters: {
+                paths: {
+                  productId: true,
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+    setProduct: {
+      handler: 'handler.setProduct',
+      events: [
+        {
+          http: {
+            path: 'product',
+            method: 'put',
+            cors: true,
+          },
+        },
+      ],
+    },
+    deleteProduct: {
+      handler: 'handler.deleteProduct',
+      events: [
+        {
+          http: {
+            path: 'product/{productId}',
+            method: 'delete',
+            cors: true,
+            request: {
+              parameters: {
+                paths: {
+                  productId: true,
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+    pgInit: {
+      handler: 'handler.pgInit',
+      events: [
+        {
+          http: {
+            path: 'init',
+            method: 'get',
+            cors: true,
+          },
+        },
+      ],
+    },
+    ssgTest: {
+      handler: 'handler.ssgTest',
+      events: [
+        {
+          http: {
+            path: 'test',
+            method: 'get',
+            cors: true,
           },
         },
       ],

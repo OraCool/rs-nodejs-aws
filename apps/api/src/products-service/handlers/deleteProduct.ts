@@ -18,52 +18,46 @@ const dbOptions: ClientConfig = {
   connectionTimeoutMillis: 5000, // time in millisecond for termination of the database query
 };
 
-export const getProduct: APIGatewayProxyHandler = async (event, _context) => {
-  const resp = {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
-    statusCode: 200,
-    body: 'created',
-  };
+export const deleteProduct: APIGatewayProxyHandler = async (
+  event,
+  _context
+) => {
   if (event && event.pathParameters && event.pathParameters.productId) {
+    const productId: string = event.pathParameters.productId;
+    console.log(`deleteProduct incoming request: productId: ${event.pathParameters.productId}`);
+    const resp = {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
+      statusCode: 200,
+      body: 'Deleted',
+    };
     const client = new Client(dbOptions);
     try {
       await client.connect();
-      const productId = event.pathParameters.productId;
-      console.log(`getProduct incoming request: productId: ${event.pathParameters.productId}`);
-      const queryResult = await client.query(
-        `select p.*, s.count from products p left join stocks s on p.id=s.product_id where p.id=$1`,
+      const queryResult1 = await client.query(
+        `delete from stocks where product_id=$1;`,
         [productId]
       );
-      let product: Product;
-      const row = queryResult.rows[0];
-      if (row) {
-        product = new Product(
-          row.id,
-          row.title,
-          row.description,
-          row.price,
-          row.count
-        );
-      }
-      if (product) {
-        resp.statusCode = 200;
-        resp.body = JSON.stringify(product);
-      } else {
-        resp.statusCode = 404;
-        resp.body = `Product with id=${productId} is not found`;
-      }
+      const queryResult = await client.query(
+        `delete from products where id=$1;`,
+        [productId]
+      );
     } catch (err) {
       resp.statusCode = 500;
-      resp.body = `Internal error`;
+      resp.body = JSON.stringify(err);
     } finally {
       // in case if error was occurred, connection will not close automatically
       client.end(); // manual closing of connection
     }
+    return resp;
   } else {
-    resp.statusCode = 400;
-    resp.body = `Bad request`;
+    return {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+      },
+      statusCode: 400,
+      body: `Bad request`,
+    };
   }
-  return resp;
 };
