@@ -6,7 +6,10 @@ import * as _ from 'lodash';
 // eslint-disable-next-line @nrwl/nx/enforce-module-boundaries
 import { BUCKET, REGION } from '../utils/constants';
 
-export const importProductsFile: APIGatewayProxyHandler = async (event) => {
+export const importProductsFile: APIGatewayProxyHandler = async (
+  event,
+  _context
+) => {
   const resp = {
     headers: {
       'Access-Control-Allow-Origin': '*',
@@ -25,7 +28,7 @@ export const importProductsFile: APIGatewayProxyHandler = async (event) => {
         Bucket: BUCKET,
         Key: `uploaded/${event.queryStringParameters.name}`,
         ContentType: 'text/csv',
-        Expires: 60
+        Expires: 60,
       };
       const signedUrl = await s3.getSignedUrl('putObject', params);
       resp.body = JSON.stringify({ fileUploadURL: signedUrl });
