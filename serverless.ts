@@ -27,7 +27,7 @@ const serverlessConfiguration: Serverless = {
     },
     environment: {
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
-      PG_HOST: '',
+      PG_HOST: 'rs-aws-db.coxauduykchc.eu-west-1.rds.amazonaws.com',
       PG_PORT: 5432,
       PG_DATABASE: 'rsnodedb',
       PG_USERNAME: 'postgres',
