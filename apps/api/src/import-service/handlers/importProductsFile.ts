@@ -18,9 +18,7 @@ export const importProductsFile: APIGatewayProxyHandler = async (
     body: 'imported',
   };
   if (
-    event &&
-    event.queryStringParameters &&
-    event.queryStringParameters.name
+    event?.queryStringParameters?.name
   ) {
     const s3 = new S3({ region: REGION });
     try {

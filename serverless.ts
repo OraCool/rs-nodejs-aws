@@ -31,7 +31,7 @@ const serverlessConfiguration: Serverless = {
       PG_PORT: 5432,
       PG_DATABASE: 'rsnodedb',
       PG_USERNAME: 'postgres',
-      PG_PASSWORD: 'ssg23121995',
+      PG_PASSWORD: '',
     },
   },
   functions: {
